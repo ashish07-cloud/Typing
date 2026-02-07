@@ -1,0 +1,1 @@
+// analyzes error patters ( server side to save client CPU )
