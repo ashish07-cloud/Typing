@@ -1,48 +1,44 @@
 import mongoose from "mongoose";
 
-const telemetrySchema = new mongoose.Schema({
-  wpmTimeline: { type: [Number], default: [] },
-  duration: { type: Number, default: 0 }
-}, { _id: false }); // optional: prevents creating a separate _id for telemetry
+const keystrokeSchema = new mongoose.Schema(
+  {
+    k: { type: String },      // key
+    t: { type: Number },      // timestamp
+    i: { type: Number },      // index
+    c: { type: Boolean },     // correctness
+  },
+  { _id: false }
+);
 
 const testResultSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      default: null, 
-      index: true,  
+      required: true,
+      index: true,
     },
 
-    // --- ADDED: Mode Tracking ---
     mode: {
       type: String,
       enum: ["time", "words"],
       required: true,
-      default: "time",
+      index: true,
     },
+
     limit: {
-      type: Number, 
+      type: Number,
       required: true,
-    },
-    // ----------------------------
-
-    duration: {
-      type: Number, 
-      required: true,
-    },
-
-    rawLength: {
-      type: Number, 
-      required: true,
-    },
-
-    correctChars: {
-      type: Number, 
-      required: true,
+      index: true,
     },
 
     wpm: {
+      type: Number,
+      required: true,
+      index: true,
+    },
+
+    rawWpm: {
       type: Number,
       required: true,
     },
@@ -50,25 +46,73 @@ const testResultSchema = new mongoose.Schema(
     accuracy: {
       type: Number,
       required: true,
+      min: 0,
+      max: 100,
+      index: true,
     },
 
-    flags: {
-      type: [String], 
-      default: [],
+    duration: {
+      type: Number, // milliseconds
+      required: true,
     },
 
-    telemetry: telemetrySchema,
+    correct: {
+      type: Number,
+      required: true,
+    },
+
+    incorrect: {
+      type: Number,
+      required: true,
+    },
+
+    totalTyped: {
+      type: Number,
+      required: true,
+    },
+
+    deviceType: {
+      type: String,
+      enum: ["desktop", "mobile", "tablet"],
+      default: "desktop",
+      index: true,
+    },
+
+    consistencyScore: {
+      type: Number,
+      default: null, // future feature
+    },
+
+    rawLog: {
+      type: [keystrokeSchema],
+      default: undefined, // only saved when needed
+    },
 
     isValid: {
       type: Boolean,
       default: true,
-      index: true, 
+      index: true,
+    },
+
+    flags: {
+      type: [String],
+      default: [],
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-testResultSchema.index({ isValid: 1, wpm: -1 });
-testResultSchema.index({ user: 1, createdAt: -1 });
+/**
+ * Compound index for leaderboard queries
+ * Fast query: top scores per mode + limit
+ */
+testResultSchema.index({ mode: 1, limit: 1, wpm: -1, accuracy: -1 });
+
+/**
+ * Fast personal best lookup
+ */
+testResultSchema.index({ user: 1, mode: 1, limit: 1, wpm: -1 });
 
 export default mongoose.model("TestResult", testResultSchema);

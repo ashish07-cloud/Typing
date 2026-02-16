@@ -1,16 +1,28 @@
 import { memo } from "react";
 
-function Caret({ x, y, height }) {
+const Caret = memo(({ status }) => {
+  if (status === "finished") return null;
+
   return (
     <div
-      className="absolute pointer-events-none bg-olive-600 transition-all duration-75"
+      className={`
+        absolute
+        z-20
+        bg-main
+        w-[2px]
+        transition-transform
+        duration-75
+        ease-out
+        ${status === "idle" ? "animate-pulse" : ""}
+      `}
       style={{
-        width: "2px",
-        height,
-        transform: `translate(${x}px, ${y}px)`,
+        height: "var(--caret-height, 1.5em)",
+        transform: "translate3d(var(--caret-x), var(--caret-y), 0)",
+        top: 0,
+        left: 0,
       }}
     />
   );
-}
+});
 
-export default memo(Caret);
+export default Caret;

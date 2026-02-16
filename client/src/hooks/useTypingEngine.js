@@ -1,74 +1,87 @@
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
+import TypingEngine from "../core/TypingEngine";
+import { generateWords } from "../utils/wordGenerator";
 
-export default function useTypingEngine({
-  mode,
-  wordLimit,
-  isExternallyFinished,
-}) {
-  const [text, setText] = useState(
-    "the quick brown fox jumps over the lazy dog typing consistently helps improve speed accuracy and muscle memory focus on accuracy before speed and maintain a steady rhythm while typing practice daily to see improvement"
+export default function useTypingEngine({ mode, limit, onComplete }) {
+  const engineRef = useRef(null);
+  const wordsRef = useRef([]);
+  const onCompleteRef = useRef(onComplete);
+
+  const [snapshot, setSnapshot] = useState({
+    index: 0,
+    status: "idle",
+    correct: 0,
+    incorrect: 0,
+    totalTyped: 0,
+    duration: 0,
+    wpm: 0,
+    rawWpm: 0,
+    accuracy: 100,
+    log: [],
+    results: {},
+  });
+
+  const [resetKey, setResetKey] = useState(0);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
+    const generatedWords =
+      mode === "words" ? generateWords(limit) : generateWords(100);
+
+    wordsRef.current = generatedWords;
+
+    const text = generatedWords.join(" ");
+
+    engineRef.current = new TypingEngine(text, mode, limit);
+
+    setSnapshot(engineRef.current.getSnapshot());
+  }, [mode, limit, resetKey]);
+
+  const updateSnapshot = useCallback(() => {
+    if (!engineRef.current) return;
+
+    const snap = engineRef.current.getSnapshot();
+    setSnapshot(snap);
+
+    if (snap.status === "finished" && onCompleteRef.current) {
+      onCompleteRef.current(snap);
+    }
+  }, []);
+
+  const handleChar = useCallback(
+    (char) => {
+      if (!engineRef.current) return;
+      engineRef.current.processChar(char);
+      updateSnapshot();
+    },
+    [updateSnapshot]
   );
 
-  const [typed, setTyped] = useState([]);
-  const [cursor, setCursor] = useState(0);
-  const [isCompleted, setIsCompleted] = useState(false);
+  const handleBackspace = useCallback(() => {
+    if (!engineRef.current) return;
+    engineRef.current.processBackspace();
+    updateSnapshot();
+  }, [updateSnapshot]);
 
-  // 🔹 Count completed words
-  const completedWords = typed
-    .map((t) => t.char)
-    .join("")
-    .trim()
-    .split(" ")
-    .filter(Boolean).length;
+  const finishTest = useCallback(() => {
+    if (!engineRef.current) return;
+    engineRef.current.finish();
+    updateSnapshot();
+  }, [updateSnapshot]);
 
-  // ⌨️ Key handling
-  useEffect(() => {
-    if (isExternallyFinished || isCompleted) return;
-
-    const handleKeyDown = (e) => {
-      if (e.key.length !== 1 && e.key !== "Backspace") return;
-
-      if (e.key === "Backspace") {
-        if (cursor === 0) return;
-        setTyped((prev) => prev.slice(0, -1));
-        setCursor((c) => c - 1);
-        return;
-      }
-
-      const expectedChar = text[cursor];
-      const isCorrect = e.key === expectedChar;
-
-      setTyped((prev) => [...prev, { char: e.key, correct: isCorrect }]);
-      setCursor((c) => c + 1);
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cursor, text, isExternallyFinished, isCompleted]);
-
-  // 🧠 Completion logic
-  useEffect(() => {
-    if (mode === "time" && cursor >= text.length) {
-      setIsCompleted(true);
-    }
-
-    if (mode === "words" && completedWords >= wordLimit) {
-      setIsCompleted(true);
-    }
-  }, [cursor, completedWords, mode, wordLimit, text.length]);
-
-  const resetTest = () => {
-    setTyped([]);
-    setCursor(0);
-    setIsCompleted(false);
-  };
+  const resetEngine = useCallback(() => {
+    setResetKey((k) => k + 1);
+  }, []);
 
   return {
-    text,
-    typed,
-    cursor,
-    completedWords,
-    isCompleted,
-    resetTest,
+    ...snapshot,
+    words: wordsRef.current,
+    handleChar,
+    handleBackspace,
+    finishTest,
+    resetEngine,
   };
 }

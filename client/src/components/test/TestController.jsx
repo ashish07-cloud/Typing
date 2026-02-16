@@ -1,182 +1,100 @@
-import { useEffect, useRef, useState } from "react";
-
+import { useCallback, useEffect, useState } from "react";
 import useTypingEngine from "../../hooks/useTypingEngine";
 import useTimer from "../../hooks/useTimer";
-import useAntiCheat from "../../hooks/useAntiCheat";
 import useTelemetry from "../../hooks/useTelemetry";
-import { calculateWPM, calculateAccuracy } from "../../utils/analytics";
-
 import useSettingStore from "../../store/settingStore";
 import useHistoryStore from "../../store/historyStore";
 import useAuthStore from "../../store/authStore";
 
 import TestControls from "./TestControls";
-import TypingSection from "./TypingSection";
+import TestDisplay from "../typing-engine/TestDisplay";
 import ResultsSection from "./ResultSection";
 import TestFooter from "./TestFooter";
 
 export default function TestController() {
-  // ── SETTINGS (PERSISTED) ────────────────────
   const { mode, activeTime, wordLimit, setMode, setActiveTime, setWordLimit } =
     useSettingStore();
 
   const user = useAuthStore((s) => s.user);
   const addResult = useHistoryStore((s) => s.addResult);
 
+  const [finalStats, setFinalStats] = useState(null);
 
+  const {
+    index,
+    status,
+    correct,
+    incorrect,
+    totalTyped,
+    duration,
+    wpm,
+    rawWpm,
+    accuracy,
+    log,
+    results,
+    handleChar,
+    handleBackspace,
+    resetEngine,
+    finishTest,
+    words,
+  } = useTypingEngine({
+    mode,
+    limit: mode === "time" ? activeTime : wordLimit,
+    onComplete: (snapshot) => {
+      const statsPackage = {
+        wpm: snapshot.wpm,
+        rawWpm: snapshot.rawWpm,
+        accuracy: snapshot.accuracy,
+        duration: snapshot.duration,
+        correctChars: snapshot.correct,
+        totalChars: snapshot.totalTyped,
+        mode,
+        limit: mode === "time" ? activeTime : wordLimit,
+        timestamp: Date.now(),
+      };
 
-  // ── TIME TRACKING ───────────────────────────
-  const startTimeRef = useRef(null);
-  const hasSavedResultRef = useRef(false);
-  const [elapsedTime, setElapsedTime] = useState(0);
+      setFinalStats(statsPackage);
 
-  // ── TIMER (TIME MODE ONLY) ──────────────────
+      addResult(user, {
+        id: crypto.randomUUID(),
+        ...statsPackage,
+        rawLog: snapshot.log,
+      }).catch((err) =>
+        console.error("Failed to sync result:", err)
+      );
+    },
+  });
+
   const { timeLeft, start, resetTimer } = useTimer(
     mode === "time" ? activeTime : null,
+    finishTest
   );
 
-  // ── TYPING ENGINE ───────────────────────────
-  const { text, typed, cursor, isCompleted, resetTest } = useTypingEngine({
-    mode,
-    wordLimit,
-    isExternallyFinished: timeLeft === 0,
-  });
-
-  // ── ANTI-CHEAT ──────────────────────────────
-  const { cheatFlags, trackSpeed, resetAntiCheat } = useAntiCheat();
-
-  // ── TEST STATE ──────────────────────────────
-  const isTestFinished = (mode === "time" && timeLeft === 0) || isCompleted;
-
-  // ── HANDLE KEYSTROKES (SINGLE EFFECT) ───────
   useEffect(() => {
-    if (!typed.length) return;
+  if (status === "finished") {
+    resetTimer();
+  }
+}, [status, resetTimer]);
 
-    // first keystroke
-    if (typed.length === 1) {
-      startTimeRef.current = Date.now();
-      hasSavedResultRef.current = false;
 
-      if (mode === "time") {
-        start();
-      }
-    }
+  const { wpmTimeline } = useTelemetry({ log, status });
 
-    trackSpeed();
-  }, [typed, start, trackSpeed, mode]);
-
-  // ── STOP TIMER & CALCULATE ELAPSED TIME ─────
   useEffect(() => {
-    if (!isTestFinished || !startTimeRef.current) return;
+    if (status === "running") start();
+  }, [status, start]);
 
-    const endTime = Date.now();
-    setElapsedTime((endTime - startTimeRef.current) / 1000);
-  }, [isTestFinished]);
+  const resetAll = useCallback(() => {
+    setFinalStats(null);
+    resetEngine();
+    resetTimer();
+  }, [resetEngine, resetTimer]);
 
-  // ── STATS ───────────────────────────────────
-  const totalChars = typed.length;
-  const correctChars = typed.filter((t) => t.correct).length;
-
-  const rawTimeTaken =
-  mode === "time"
-    ? activeTime - timeLeft
-    : elapsedTime;
-
-// prevent 0 or near-0 time
-const timeTaken = Math.max(rawTimeTaken, 0.5);
-
-
-  const wpm = isTestFinished ? calculateWPM(correctChars, timeTaken) : 0;
-
-  const accuracy = isTestFinished
-    ? calculateAccuracy(correctChars, totalChars)
-    : 100;
-
-  const { wpmTimeline, resetTelemetry } = useTelemetry({
-    isRunning: !isTestFinished && typed.length > 0,
-    correctChars,
-    startTimeRef,
-  });
-
-  // ── RESTART HANDLING ────────────────────────
-  useEffect(() => {
-    const handleRestart = (e) => {
-      if (e.key === "Tab" || e.key === "Enter") {
-        e.preventDefault();
-        resetAll();
-      }
-    };
-
-    window.addEventListener("keydown", handleRestart);
-    return () => window.removeEventListener("keydown", handleRestart);
-  }, []);
-
-  // ── RESET ON MODE / LIMIT CHANGE ────────────
   useEffect(() => {
     resetAll();
-  }, [mode, activeTime, wordLimit]);
+  }, [mode, activeTime, wordLimit, resetAll]);
 
-  const resetAll = () => {
-    resetTest();
-    resetTimer();
-    resetAntiCheat();
-    startTimeRef.current = null;
-    hasSavedResultRef.current = false;
-    setElapsedTime(0);
-    resetTelemetry();
-  };
-
-  // saving the history
-  useEffect(() => {
-    if (!isTestFinished) return;
-    if (!typed.length) return;
-    if (hasSavedResultRef.current) return;
-
-    hasSavedResultRef.current = true;
-
-    addResult(user, {
-  id: crypto.randomUUID(),
-  mode,
-  limit: mode === "time" ? activeTime : wordLimit,
-  wpm: Math.round(wpm),
-  accuracy: Math.round(accuracy),
-  correctChars,
-  totalChars,
-  duration: Math.round(timeTaken),
-  timestamp: Date.now(),
-  cheated: cheatFlags.length > 0,
-  telemetry: {
-    wpmTimeline,
-    duration: Math.round(timeTaken),
-  },
-});
-
-  }, [
-    isTestFinished,
-    typed.length,
-    wpm,
-    accuracy,
-    mode,
-    activeTime,
-    wordLimit,
-    cheatFlags.length,
-    timeTaken,
-    wpmTimeline,
-    addResult,
-  ]);
-
-
-  // for seeing the per second wpm in the console 
-  useEffect(() => {
-  if (wpmTimeline.length) {
-    console.log("WPM Timeline:", wpmTimeline);
-  }
-}, [wpmTimeline]);
-
-
-  // ── RENDER ──────────────────────────────────
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col items-center">
+    <div className="w-full max-w-5xl mx-auto flex flex-col items-center py-12 px-4 select-none">
       <TestControls
         mode={mode}
         setMode={setMode}
@@ -184,23 +102,38 @@ const timeTaken = Math.max(rawTimeTaken, 0.5);
         setActiveTime={setActiveTime}
         wordLimit={wordLimit}
         setWordLimit={setWordLimit}
+        disabled={status === "running"}
       />
 
-      {!isTestFinished && (
-        <TypingSection
-          text={text}
-          typed={typed}
-          cursor={cursor}
-          timeLeft={timeLeft}
-          isTestFinished={isTestFinished}
-        />
-      )}
+      <div className="w-full min-h-[350px] flex items-center justify-center">
+        {!finalStats ? (
+          <div className="w-full relative animate-in fade-in duration-500">
+            <div className="absolute -top-16 left-0 font-mono text-3xl text-main/40">
+              {mode === "time"
+                ? timeLeft
+                : `${index}/${words.length}`}
+            </div>
 
-      {isTestFinished && (
-        <ResultsSection wpm={wpm} accuracy={accuracy} cheatFlags={cheatFlags} />
-      )}
+            <TestDisplay
+              words={words}
+              index={index}
+              results={results}
+             
+              status={status}
+              handleChar={handleChar}
+              handleBackspace={handleBackspace}
+            />
+          </div>
+        ) : (
+          <ResultsSection
+            stats={finalStats}
+            timeline={wpmTimeline}
+            onRestart={resetAll}
+          />
+        )}
+      </div>
 
-      <TestFooter />
+      <TestFooter onRestart={resetAll} />
     </div>
   );
 }

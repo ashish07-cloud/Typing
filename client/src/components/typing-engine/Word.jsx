@@ -1,41 +1,45 @@
 import { memo } from "react";
-import Letter from "./Letter";
 
-function Word({
-  word,
-  typed = "",
-  isActive,
-  startIndex,
-  letterRefs,
-}) {
-  return (
-    <span
-      className={`mr-2 relative ${
-        isActive
-          ? "underline decoration-2 underline-offset-4 decoration-olive-400"
-          : ""
-      }`}
-    >
-      {word.split("").map((char, index) => {
-        let status = "untyped";
+const Word = memo(
+  ({ word, startIndex, index, results = {}, setLetterRef }) => {
+    return (
+      <div className="flex relative">
+        {word.split("").map((char, charIdx) => {
+          const globalIdx = startIndex + charIdx;
 
-        if (typed[index]) {
-          status = typed[index] === char ? "correct" : "incorrect";
-        }
+          const isCurrent = index === globalIdx;
+          const hasTyped = Object.prototype.hasOwnProperty.call(
+            results,
+            globalIdx
+          );
+          const isCorrect = results[globalIdx];
 
-        const globalIndex = startIndex + index;
+          let colorClass = "text-sub";
 
-        return (
-          <Letter
-            key={globalIndex}
-            char={char}
-            status={status}
-            letterRef={(el) => (letterRefs.current[globalIndex] = el)}
-          />
-        );
-      })}
-    </span>
-  );
-}
+          if (hasTyped) {
+            colorClass = isCorrect
+              ? "text-dark"
+              : "text-error border-b-2 border-error/40";
+          }
 
-export default memo(Word);
+          if (isCurrent) {
+            colorClass =
+              "text-main underline decoration-2 underline-offset-4";
+          }
+
+          return (
+            <span
+              key={globalIdx}
+              ref={(el) => setLetterRef(globalIdx, el)}
+              className="whitespace-pre transition-colors duration-100"
+            >
+              <span className={colorClass}>{char}</span>
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+);
+
+export default Word;

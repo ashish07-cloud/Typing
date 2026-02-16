@@ -1,19 +1,11 @@
-import TestDisplay from "../typing-engine/TestDisplay";
-
-export default function TypingSection({
-  text,
-  typed,
-  cursor,
-  timeLeft,
-  isTestFinished,
-}) {
+export default function TypingSection({ children }) {
   return (
-    <TestDisplay
-      text={text}
-      typed={typed}
-      cursor={cursor}
-      timeLeft={timeLeft}
-      isTimeUp={isTestFinished}
-    />
+    <div className="min-h-screen bg-page flex flex-col">
+      <div className="flex-1 flex items-center justify-center">
+        <div className="w-full">
+          {children}
+        </div>
+      </div>
+    </div>
   );
 }

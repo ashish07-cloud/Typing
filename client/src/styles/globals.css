@@ -1,23 +1,77 @@
+/* @import "tailwindcss";
+
+@theme {
+
+  --color-page: var(--bg-color);
+  --color-main: var(--main-color);
+  --color-sub: var(--sub-color);
+  --color-dark: var(--text-color);
+  --color-error: var(--error-color);
+
+
+  --color-olive-600: #6B8E23;
+  --color-olive-700: #556B2F;
+}
+
+:root {
+
+  --bg-color: #f5f2e7;
+  --main-color: #8c8c73;
+  --sub-color: #b5b59a;
+  --text-color: #1c1c1c;
+  --error-color: #ca4754;
+}
+
+[data-theme='dark'] {
+  --bg-color: #111111;
+  --main-color: #eeeeee;
+  --sub-color: #444444;
+  --text-color: #ffffff;
+  --error-color: #da3333;
+}
+
+@layer base {
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: all 0.25s ease;
+    @apply font-mono;
+  }
+} */
 @import "tailwindcss";
 
 @theme {
-  /* Olive Palette */
-  --color-olive-50: #f8f9f5;
-  --color-olive-100: #e9eee0;
-  --color-olive-200: #d4dec0;
-  --color-olive-300: #b8c999;
-  --color-olive-400: #9ab973;
-  --color-olive-500: #7fa84d;
-  --color-olive-600: #6B8E23;
-  --color-olive-700: #556B2F;
-  --color-olive-800: #445422;
-  --color-olive-900: #374418;
+  --color-page: var(--bg-color);
+  --color-main: var(--main-color);
+  --color-sub: var(--sub-color);
+  --color-dark: var(--text-color);
+  --color-error: var(--error-color);
+}
 
-  /* Creamy Palette */
-  --color-creamy-50: #FFFDE7;
-  --color-creamy-100: #FDF9D8;
-  --color-creamy-200: #F5F5DC;
-  --color-creamy-300: #EDE9D0;
-  --color-creamy-400: #E5DFC5;
-  --color-creamy-500: #DDD5BA;
+:root {
+  --bg-color: #f9f7f0;
+  --main-color: #e68a2e;
+  --sub-color: #b0a99e;
+  --text-color: #2d2d2d;
+  --error-color: #dc2626;
+
+  --caret-speed: 0.1s;
+  --caret-ease: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+
+[data-theme="dark"] {
+  --bg-color: #111111;
+  --main-color: #e68a2e;
+  --sub-color: #4a4a4a;
+  --text-color: #e5e5e5;
+  --error-color: #ef4444;
+}
+
+@layer base {
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.25s ease, color 0.25s ease;
+    @apply font-mono antialiased;
+  }
 }

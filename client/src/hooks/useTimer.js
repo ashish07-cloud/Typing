@@ -1,38 +1,39 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
-export default function useTimer(initialSeconds = 60) {
-  const [timeLeft, setTimeLeft] = useState(initialSeconds);
-  const intervalRef = useRef(null);
+export default function useTimer(seconds, onTimeUp) {
+  const [timeLeft, setTimeLeft] = useState(seconds);
+  const timerRef = useRef(null);
+  const endTimeRef = useRef(null);
 
-  const start = () => {
-    if (intervalRef.current) return;
-
-    intervalRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
- const resetTimer = () => {
-  clearInterval(intervalRef.current);
-  intervalRef.current = null;
-  setTimeLeft(initialSeconds);
-};
-
-
-  useEffect(() => {
-    return () => clearInterval(intervalRef.current);
+  const stop = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
 
-  return {
-    timeLeft,
-    start,
-    resetTimer,
-  };
+  const start = useCallback(() => {
+    if (timerRef.current || !seconds) return;
+    
+    endTimeRef.current = Date.now() + seconds * 1000;
+    
+    timerRef.current = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((endTimeRef.current - Date.now()) / 1000));
+      setTimeLeft(remaining);
+
+      if (remaining <= 0) {
+        stop();
+        if (onTimeUp) onTimeUp();
+      }
+    }, 100);
+  }, [seconds, onTimeUp, stop]);
+
+  const resetTimer = useCallback(() => {
+    stop();
+    setTimeLeft(seconds);
+  }, [seconds, stop]);
+
+  useEffect(() => () => stop(), [stop]);
+
+  return { timeLeft, start, resetTimer };
 }

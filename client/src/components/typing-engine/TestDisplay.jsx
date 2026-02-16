@@ -1,91 +1,126 @@
-import { useEffect, useRef, useState } from "react";
-import HiddenInput from "./HiddenInput";
-import Word from "./Word";
+import {
+  useEffect,
+  useRef,
+  useCallback,
+  useLayoutEffect,
+} from "react";
 import Caret from "./Caret";
+import Word from "./Word";
+import HiddenInput from "./HiddenInput";
 
 export default function TestDisplay({
-  text,
-  typed,
-  cursor,
-  timeLeft,
-  isTimeUp,
+  words,
+  index,
+  results,
+  status,
+  handleChar,
+  handleBackspace,
 }) {
-  const inputRef = useRef(null);
-  const typedString = typed.map((t) => t.char).join("");
-  const words = text.split(" ");
-
-  const letterRefs = useRef([]);
   const containerRef = useRef(null);
+  const inputRef = useRef(null);
+  const letterRefs = useRef({});
 
-  const [caret, setCaret] = useState({
-    x: 0,
-    y: 0,
-    h: 24,
-  });
-
-  // 🧠 DOM-BASED CARET POSITION
   useEffect(() => {
-    const el = letterRefs.current[cursor];
+  if (status !== "finished") {
+    inputRef.current?.focus();
+  }
+}, [status]);
+
+  useEffect(() => {
+    letterRefs.current = {};
+  }, [words]);
+
+  const setLetterRef = useCallback((idx, el) => {
+    if (el) letterRefs.current[idx] = el;
+  }, []);
+
+  useLayoutEffect(() => {
     const container = containerRef.current;
+    const activeLetter = letterRefs.current[index];
 
-    if (!el || !container) return;
+    if (!container || !activeLetter) return;
 
-    const charRect = el.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
+    const raf = requestAnimationFrame(() => {
+      const containerRect = container.getBoundingClientRect();
+      const letterRect = activeLetter.getBoundingClientRect();
 
-    setCaret({
-      x: charRect.left - containerRect.left,
-      y: charRect.top - containerRect.top,
-      h: charRect.height,
+      container.style.setProperty(
+        "--caret-x",
+        `${letterRect.left - containerRect.left}px`
+      );
+      container.style.setProperty(
+        "--caret-y",
+        `${letterRect.top - containerRect.top}px`
+      );
+      container.style.setProperty(
+        "--caret-height",
+        `${letterRect.height}px`
+      );
     });
-  }, [cursor, text]);
 
-  let charIndex = 0;
+    return () => cancelAnimationFrame(raf);
+  }, [index, words]);
+
+  const wordsArray = Array.isArray(words) ? words : [];
+
+  let globalIndex = 0;
 
   return (
-    <div className="relative w-full">
-      <HiddenInput inputRef={inputRef} />
+    <div
+      ref={containerRef}
+      onClick={() => inputRef.current?.focus()}
+      className="
+        relative
+        w-full
+        max-w-5xl
+        mx-auto
+        px-4
+        sm:px-6
+        lg:px-8
+        py-10
+        md:py-16
+        font-mono
+        text-xl
+        sm:text-2xl
+        md:text-3xl
+        leading-relaxed
+        tracking-wide
+        select-none
+        cursor-text
+      "
+      style={{
+        "--caret-x": "0px",
+        "--caret-y": "0px",
+        "--caret-height": "1.5em",
+      }}
+    >
+      <HiddenInput
+        inputRef={inputRef}
+        onChar={handleChar}
+        onBackspace={handleBackspace}
+        disabled={status === "finished"}
+      />
 
-      {/* Timer */}
-      <div className="mb-3 text-xs text-neutral-500">
-        {timeLeft}s
-      </div>
+      <Caret status={status} />
 
-      {/* Typing Area */}
-      <div
-        ref={containerRef}
-        className="relative font-mono text-4xl leading-snug text-neutral-300 flex flex-wrap gap-x-2 pointer-events-none"
+      <div className="flex flex-wrap gap-y-3">
+        {wordsArray.map((word, wordIdx) => {
+          const displayWord =
+            wordIdx === wordsArray.length - 1
+              ? word
+              : word + " ";
 
-      >
-        {!isTimeUp && (
-          <Caret
-            x={caret.x}
-            y={caret.y}
-            height={caret.h}
-          />
-        )}
-
-        {words.map((word, i) => {
-          const typedSlice = typedString.slice(
-            charIndex,
-            charIndex + word.length
-          );
-
-          const isActive =
-            cursor >= charIndex &&
-            cursor <= charIndex + word.length;
-
-          const startIndex = charIndex;
-          charIndex += word.length + 1;
+          const startIndex = globalIndex;
+          globalIndex += displayWord.length;
 
           return (
             <Word
-              key={i}
-              word={word}
-              typed={typedSlice}
-              isActive={isActive}
+              key={`${wordIdx}-${startIndex}`}
+              word={displayWord}
               startIndex={startIndex}
-              letterRefs={letterRefs}
+              index={index}
+              results={results}
+              setLetterRef={setLetterRef}
             />
           );
         })}

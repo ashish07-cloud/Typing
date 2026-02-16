@@ -1,69 +1,42 @@
-import { useEffect, useRef, useState } from "react";
+import { useMemo } from "react";
 
-/**
- * Frontend telemetry collector
- * - Records per-second WPM snapshots
- * - Safe for React StrictMode
- */
-export default function useTelemetry({
-  isRunning,
-  correctChars,
-  startTimeRef,
-}) {
-  const [wpmTimeline, setWpmTimeline] = useState([]);
+export default function useTelemetry({ log = [], status }) {
+  const safeLog = Array.isArray(log) ? log : [];
 
-  const intervalRef = useRef(null);
-  const lastCharCountRef = useRef(0);
+  const wpmTimeline = useMemo(() => {
+    if (safeLog.length === 0) return [];
 
-  useEffect(() => {
-    if (!isRunning || !startTimeRef.current) return;
+    const startTime = safeLog[0]?.t;
+    const lastTime = safeLog[safeLog.length - 1]?.t;
 
-    // start heartbeat
-    intervalRef.current = setInterval(() => {
-      const now = Date.now();
-      const elapsedSeconds = (now - startTimeRef.current) / 1000;
+    if (!startTime || !lastTime) return [];
 
-      if (elapsedSeconds <= 0) return;
+    const totalSeconds = Math.floor((lastTime - startTime) / 1000);
+    if (totalSeconds <= 1) return [];
 
-      const charsTypedThisSecond = correctChars - lastCharCountRef.current;
+    const rawTimeline = [];
 
-      lastCharCountRef.current = correctChars;
+    for (let s = 1; s <= totalSeconds; s++) {
+      const timeWindow = startTime + s * 1000;
 
-      const instantWPM = (charsTypedThisSecond / 5) * 60;
+      const correctChars = safeLog.filter(
+        (entry) => entry.t <= timeWindow && entry.c === true
+      ).length;
 
-      setWpmTimeline((prev) => [...prev, Math.round(instantWPM)]);
-    }, 1000);
+      const wpm = Math.round((correctChars / 5) / (s / 60));
+      rawTimeline.push(wpm);
+    }
 
-    return () => {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    // 🔥 Smooth with 3-point moving average
+    const smoothed = rawTimeline.map((_, i, arr) => {
+      const prev = arr[i - 1] || arr[i];
+      const curr = arr[i];
+      const next = arr[i + 1] || arr[i];
+      return Math.round((prev + curr + next) / 3);
+    });
 
-      // final snapshot for short tests
-      if (correctChars > lastCharCountRef.current && startTimeRef.current) {
-        const elapsedSeconds = (Date.now() - startTimeRef.current) / 1000;
+    return smoothed;
+  }, [safeLog, status]);
 
-        if (elapsedSeconds > 0) {
-          const finalWPM = (correctChars / 5 / elapsedSeconds) * 60;
-
-          setWpmTimeline((prev) =>
-            prev.length === 0 ? [Math.round(finalWPM)] : prev,
-          );
-        }
-      }
-    };
-  }, [isRunning, correctChars, startTimeRef]);
-
-  const resetTelemetry = () => {
-    setWpmTimeline([]);
-    lastCharCountRef.current = 0;
-    clearInterval(intervalRef.current);
-    intervalRef.current = null;
-  };
-
-  //   console.log("Instant WPM:", instantWPM);
-
-  return {
-    wpmTimeline,
-    resetTelemetry,
-  };
+  return { wpmTimeline };
 }
