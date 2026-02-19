@@ -19,7 +19,7 @@ const achievementSchema = new mongoose.Schema(
       default: Date.now,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const userSchema = new mongoose.Schema(
@@ -60,7 +60,7 @@ const userSchema = new mongoose.Schema(
 
     country: {
       type: String,
-      default: "", // ISO-3166-1 alpha-2 recommended
+      default: "",
       uppercase: true,
     },
 
@@ -72,9 +72,10 @@ const userSchema = new mongoose.Schema(
     preferences: {
       theme: {
         type: String,
-        enum: ["light", "dark"],
-        default: "light",
+        enum: ["olive", "dracula", "midnight", "sunset"],
+        default: "olive",
       },
+
       soundEnabled: {
         type: Boolean,
         default: true,
@@ -109,7 +110,7 @@ const userSchema = new mongoose.Schema(
       },
 
       totalTimeTyped: {
-        type: Number, // milliseconds
+        type: Number,
         default: 0,
       },
 
@@ -118,16 +119,16 @@ const userSchema = new mongoose.Schema(
         default: 0,
       },
 
+      // ✅ FIXED — removed select: false
       totalWpmSum: {
         type: Number,
         default: 0,
-        select: false,
       },
 
+      // ✅ FIXED — removed select: false
       totalAccuracySum: {
         type: Number,
         default: 0,
-        select: false,
       },
     },
 
@@ -140,36 +141,29 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 /**
  * Virtual Averages
  */
 userSchema.virtual("avgWpm").get(function () {
-  return this.stats.testsCompleted > 0
-    ? Math.round(
-        this.stats.totalWpmSum / this.stats.testsCompleted
-      )
-    : 0;
+  if (!this.stats?.testsCompleted) return 0;
+
+  return Math.round(this.stats.totalWpmSum / this.stats.testsCompleted);
 });
 
 userSchema.virtual("avgAccuracy").get(function () {
-  return this.stats.testsCompleted > 0
-    ? Math.round(
-        this.stats.totalAccuracySum /
-          this.stats.testsCompleted
-      )
-    : 0;
+  if (!this.stats?.testsCompleted) return 0;
+
+  return Math.round(this.stats.totalAccuracySum / this.stats.testsCompleted);
 });
 
 /**
  * Prevent duplicate achievements
  */
 userSchema.methods.addAchievement = function (name) {
-  const exists = this.achievements.some(
-    (a) => a.name === name
-  );
+  const exists = this.achievements.some((a) => a.name === name);
   if (!exists) {
     this.achievements.push({ name });
   }
@@ -183,15 +177,10 @@ userSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, 12);
 });
 
-userSchema.methods.comparePassword = async function (
-  candidate
-) {
+userSchema.methods.comparePassword = async function (candidate) {
   return bcrypt.compare(candidate, this.password);
 };
 
-/**
- * Helpful compound index for ranking queries
- */
 userSchema.index({ "stats.bestWpm": -1 });
 
 export default mongoose.model("User", userSchema);

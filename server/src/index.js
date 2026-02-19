@@ -8,24 +8,37 @@ import authRoutes from "./routes/auth.js";
 import testRoutes from "./routes/tests.js";
 import statsRoutes from "./routes/stats.js";
 import leaderboardRoutes from "./routes/leaderboard.js";
-import userRoutes from "./routes/users.js"
+import userRoutes from "./routes/users.js";
 
 dotenv.config();
 
 const app = express();
 
-// 1. DATABASE CONNECTION
-// We wrap this to ensure we don't start the server if the DB is dead
+app.set("trust proxy", 1);
+
 const startServer = async () => {
   try {
     await connectDB();
     console.log("✅ Database connected successfully");
 
-    // 2. MIDDLEWARE
+
+    const allowedOrigins = [
+      process.env.CLIENT_URL,
+      "http://localhost:5173"
+    ];
+
     app.use(cors({ 
-      origin: "http://localhost:5173", 
+      origin: function (origin, callback) {
+     
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+          return callback(new Error('CORS policy violation'), false);
+        }
+        return callback(null, true);
+      },
       credentials: true 
     })); 
+
     app.use(express.json());
 
     // 3. MOUNT ROUTES
@@ -35,19 +48,17 @@ const startServer = async () => {
     app.use("/api/leaderboard", leaderboardRoutes);
     app.use("/api/users", userRoutes);
 
-    // 4. GLOBAL ERROR HANDLER (Production Essential)
-    // This catches any unhandled errors in your controllers
     app.use((err, req, res, next) => {
       console.error("🚨 Global Error:", err.stack);
       res.status(500).json({ error: "Internal Server Error", details: err.message });
     });
 
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log(`🚀 Server screaming on port ${PORT}`));
+    app.listen(PORT, () => console.log(` Server running on port ${PORT}`));
 
   } catch (error) {
-    console.error("❌ Failed to start server:", error.message);
-    process.exit(1); // Kill the process if DB connection fails
+    console.error("Failed to start server:", error.message);
+    process.exit(1);
   }
 };
 

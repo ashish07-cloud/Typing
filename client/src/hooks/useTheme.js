@@ -1,18 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { THEMES } from "../styles/themes";
 
-export default function useTheme() {
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("theme") || "light";
-  });
-
+export default function useTheme(themeName) {
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("theme", theme);
-  }, [theme]);
+    const theme = THEMES[themeName];
+    if (!theme) return;
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  };
+    const root = document.documentElement;
 
-  return { theme, toggleTheme };
+    root.style.setProperty("--bg-color", theme.bg);
+    root.style.setProperty("--main-color", theme.main);
+    root.style.setProperty("--sub-color", theme.sub);
+    root.style.setProperty("--text-color", theme.text);
+    root.style.setProperty("--error-color", theme.error);
+
+    root.dataset.theme = themeName;
+    // ⚠️ Don't save to localStorage here — only save on actual selection
+  }, [themeName]);
 }

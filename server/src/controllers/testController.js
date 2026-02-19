@@ -2,47 +2,35 @@ import TestResult from "../models/TestResult.js";
 import Leaderboard from "../models/Leaderboard.js";
 import User from "../models/User.js";
 import GlobalStats from "../models/GlobalStats.js";
+import { analyzeTest } from "../utils/textAnalysis.js";
 
 export const submitTest = async (req, res) => {
   try {
-    const {
-      rawLog,
-      duration,
-      mode,
-      limit,
-      deviceType = "desktop",
-    } = req.body;
-
+    const { rawLog, mode, limit, deviceType = "desktop" } = req.body;
     const user = req.user || null;
 
-    // ---- VALIDATION ----
-    if (!Array.isArray(rawLog) || typeof duration !== "number") {
+    if (!Array.isArray(rawLog)) {
       return res.status(400).json({ error: "Invalid submission payload" });
     }
 
-    const safeDuration = Math.max(duration, 1000);
-    const minutes = safeDuration / 60000;
+    // 🔥 SERVER AUTHORITATIVE ANALYSIS
+    const analysis = analyzeTest({ rawLog });
 
-    // ---- SERVER AUTHORITATIVE CALCULATION ----
-    const correct = rawLog.filter(e => e.c === true).length;
-    const totalTyped = rawLog.filter(e => e.k !== "bksp").length;
-    const incorrect = totalTyped - correct;
+    if (analysis.error) {
+      return res.status(400).json({ error: analysis.error });
+    }
 
-    const wpm = Math.max(0, Math.round((correct / 5) / minutes));
-    const rawWpm = Math.max(0, Math.round((totalTyped / 5) / minutes));
-    const accuracy =
-      totalTyped > 0
-        ? Math.round((correct / totalTyped) * 100)
-        : 0;
-
-    // ---- BASIC ANTI-CHEAT ----
-    const flags = [];
-
-    if (wpm > 300) flags.push("impossible_speed");
-    if (accuracy > 100) flags.push("invalid_accuracy");
-    if (correct > totalTyped) flags.push("invalid_counts");
-
-    const isValid = flags.length === 0;
+    const {
+      correct,
+      incorrect,
+      totalTyped,
+      durationSeconds,
+      netWpm,
+      rawWpm,
+      accuracy,
+      flags,
+      isValid,
+    } = analysis;
 
     // ---- GLOBAL STATS ----
     await GlobalStats.findOneAndUpdate(
@@ -51,28 +39,27 @@ export const submitTest = async (req, res) => {
         $inc: {
           totalTestsCompleted: 1,
           totalCharsTyped: totalTyped,
-          totalTimeSeconds: Math.floor(safeDuration / 1000),
+          totalTimeSeconds: Math.floor(durationSeconds),
         },
       },
       { upsert: true }
     );
 
-    // ---- GUEST SUBMISSION ----
+    // ---- GUEST ----
     if (!user) {
       return res.status(200).json({
         success: true,
-        data: { wpm, rawWpm, accuracy, isValid, flags, isGuest: true },
+        data: { wpm: netWpm, rawWpm, accuracy, isValid, flags, isGuest: true },
       });
     }
 
     const userId = user.id;
-
     const userData = await User.findById(userId);
     if (!userData) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // ---- PERSONAL BEST CHECK ----
+    // ---- PERSONAL BEST ----
     const existingPB = await Leaderboard.findOne({
       user: userId,
       mode,
@@ -80,8 +67,7 @@ export const submitTest = async (req, res) => {
     });
 
     const isNewPB =
-      isValid &&
-      (!existingPB || wpm > existingPB.wpm);
+      isValid && (!existingPB || netWpm > existingPB.wpm);
 
     if (isNewPB) {
       await Leaderboard.findOneAndUpdate(
@@ -89,7 +75,7 @@ export const submitTest = async (req, res) => {
         {
           user: userId,
           username: userData.username,
-          wpm,
+          wpm: netWpm,
           accuracy,
           mode,
           limit,
@@ -99,15 +85,15 @@ export const submitTest = async (req, res) => {
       );
     }
 
-    // ---- SAVE TEST RESULT ----
+    // ---- SAVE TEST ----
     await TestResult.create({
       user: userId,
       mode,
       limit,
-      wpm,
+      wpm: netWpm,
       rawWpm,
       accuracy,
-      duration: safeDuration,
+      duration: durationSeconds * 1000,
       correct,
       incorrect,
       totalTyped,
@@ -117,21 +103,21 @@ export const submitTest = async (req, res) => {
       flags,
     });
 
-    // ---- UPDATE USER AGGREGATES ----
+    // ---- USER STATS ----
     await User.findByIdAndUpdate(userId, {
       $inc: {
         "stats.testsCompleted": 1,
-        "stats.totalTimeTyped": safeDuration,
+        "stats.totalTimeTyped": durationSeconds * 1000,
         "stats.totalCharacters": correct,
-        "stats.totalWpmSum": wpm,
+        "stats.totalWpmSum": netWpm,
         "stats.totalAccuracySum": accuracy,
       },
-      $max: { "stats.bestWpm": wpm },
+      $max: { "stats.bestWpm": netWpm },
     });
 
     return res.status(201).json({
       success: true,
-      data: { wpm, rawWpm, accuracy, isNewPB, isValid, flags },
+      data: { wpm: netWpm, rawWpm, accuracy, isNewPB, isValid, flags },
     });
 
   } catch (error) {

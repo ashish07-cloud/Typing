@@ -1,11 +1,16 @@
-// server side math to verify client claims 
+// utils/wpmCalculator.js
 
-export const calculateWPM = (correctChars, duration) => {
-  if (duration === 0) return 0;
-  return Math.round((correctChars / 5) / (duration / 60));
+export const calculateNetWPM = (correctChars, durationSeconds) => {
+  if (!durationSeconds || durationSeconds <= 0) return 0;
+  return (correctChars / 5) / (durationSeconds / 60);
 };
 
-export const calculateAccuracy = (correctChars, rawLength) => {
-  if (rawLength === 0) return 100;
-  return Math.round((correctChars / rawLength) * 100);
+export const calculateRawWPM = (totalTyped, durationSeconds) => {
+  if (!durationSeconds || durationSeconds <= 0) return 0;
+  return (totalTyped / 5) / (durationSeconds / 60);
+};
+
+export const calculateAccuracy = (correctChars, totalTyped) => {
+  if (!totalTyped) return 100;
+  return (correctChars / totalTyped) * 100;
 };

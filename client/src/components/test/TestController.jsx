@@ -9,7 +9,6 @@ import useAuthStore from "../../store/authStore";
 import TestControls from "./TestControls";
 import TestDisplay from "../typing-engine/TestDisplay";
 import ResultsSection from "./ResultSection";
-import TestFooter from "./TestFooter";
 
 export default function TestController() {
   const { mode, activeTime, wordLimit, setMode, setActiveTime, setWordLimit } =
@@ -17,26 +16,18 @@ export default function TestController() {
 
   const user = useAuthStore((s) => s.user);
   const addResult = useHistoryStore((s) => s.addResult);
-
   const [finalStats, setFinalStats] = useState(null);
 
   const {
     index,
     status,
-    correct,
-    incorrect,
-    totalTyped,
-    duration,
-    wpm,
-    rawWpm,
-    accuracy,
-    log,
     results,
     handleChar,
     handleBackspace,
     resetEngine,
     finishTest,
     words,
+    log,
   } = useTypingEngine({
     mode,
     limit: mode === "time" ? activeTime : wordLimit,
@@ -59,9 +50,7 @@ export default function TestController() {
         id: crypto.randomUUID(),
         ...statsPackage,
         rawLog: snapshot.log,
-      }).catch((err) =>
-        console.error("Failed to sync result:", err)
-      );
+      }).catch((err) => console.error("Failed to sync result:", err));
     },
   });
 
@@ -70,18 +59,7 @@ export default function TestController() {
     finishTest
   );
 
-  useEffect(() => {
-  if (status === "finished") {
-    resetTimer();
-  }
-}, [status, resetTimer]);
-
-
   const { wpmTimeline } = useTelemetry({ log, status });
-
-  useEffect(() => {
-    if (status === "running") start();
-  }, [status, start]);
 
   const resetAll = useCallback(() => {
     setFinalStats(null);
@@ -89,36 +67,59 @@ export default function TestController() {
     resetTimer();
   }, [resetEngine, resetTimer]);
 
+  // GLOBAL TAB KEY RESTART
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Tab") {
+        e.preventDefault(); // Prevent focus switching
+        resetAll();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [resetAll]);
+
+  useEffect(() => {
+    if (status === "finished") resetTimer();
+  }, [status, resetTimer]);
+
+  useEffect(() => {
+    if (status === "running") start();
+  }, [status, start]);
+
   useEffect(() => {
     resetAll();
   }, [mode, activeTime, wordLimit, resetAll]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col items-center py-12 px-4 select-none">
-      <TestControls
-        mode={mode}
-        setMode={setMode}
-        activeTime={activeTime}
-        setActiveTime={setActiveTime}
-        wordLimit={wordLimit}
-        setWordLimit={setWordLimit}
-        disabled={status === "running"}
-      />
+    <div className="w-full max-w-6xl mx-auto flex flex-col items-center px-4 select-none">
+      {/* Test Controls (Hides during test for focus) */}
+      <div className={`transition-opacity duration-300 ${status === 'running' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <TestControls
+          mode={mode}
+          setMode={setMode}
+          activeTime={activeTime}
+          setActiveTime={setActiveTime}
+          wordLimit={wordLimit}
+          setWordLimit={setWordLimit}
+          disabled={status === "running"}
+        />
+      </div>
 
-      <div className="w-full min-h-[350px] flex items-center justify-center">
+      <div className="w-full flex items-center justify-center min-h-[400px]">
         {!finalStats ? (
-          <div className="w-full relative animate-in fade-in duration-500">
-            <div className="absolute -top-16 left-0 font-mono text-3xl text-main/40">
-              {mode === "time"
-                ? timeLeft
-                : `${index}/${words.length}`}
+          <div className="w-full relative py-20">
+            {/* Timer / Counter Display */}
+            <div className="absolute top-0 left-4 font-mono text-3xl text-[var(--main-color)] transition-opacity">
+              {status === "running" && (
+                mode === "time" ? timeLeft : `${index}/${words.length}`
+              )}
             </div>
 
             <TestDisplay
               words={words}
               index={index}
               results={results}
-             
               status={status}
               handleChar={handleChar}
               handleBackspace={handleBackspace}
@@ -132,8 +133,6 @@ export default function TestController() {
           />
         )}
       </div>
-
-      <TestFooter onRestart={resetAll} />
     </div>
   );
 }

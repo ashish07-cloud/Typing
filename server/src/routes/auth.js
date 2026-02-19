@@ -3,7 +3,8 @@ import {
   register, 
   login,
   getMe,
-  updatePreferences
+  updatePreferences,
+  deleteAccount,
 } from "../controllers/authController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
@@ -15,5 +16,6 @@ router.post("/login", login);
 // ✅ RESTORE THESE
 router.get("/me", authMiddleware, getMe);
 router.put("/preferences", authMiddleware, updatePreferences);
+router.delete("/delete", authMiddleware, deleteAccount);
 
 export default router;

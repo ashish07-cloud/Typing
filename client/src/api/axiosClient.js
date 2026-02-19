@@ -2,7 +2,8 @@ import axios from "axios";
 import useAuthStore from "../store/authStore";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api", // Ensure this matches your server port
+  // This will now use the Tunnel URL from your .env file
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
 });
 
 api.interceptors.request.use((config) => {
@@ -19,7 +20,6 @@ api.interceptors.response.use(
 
     console.error("🌐 Network Error:", status, url);
 
-    // Only logout if token is invalid AND request was auth-related
     if (status === 401 && url?.includes("/auth/me")) {
       useAuthStore.getState().logout();
     }
@@ -27,6 +27,5 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
 
 export default api;

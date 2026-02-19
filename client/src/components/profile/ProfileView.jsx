@@ -1,102 +1,71 @@
-import { useState, useEffect, useMemo } from 'react';
-import ProfileHeader from './ProfileHeader/ProfileHeader';
-import ProfileStats from './ProfileStats/ProfileStats';
-import ProfileActivity from './ProfileActivity/RecentActivity';
-import AchievementsList from './ProfileAchievements/AchievementsList';
-import ProfileSettings from './ProfileSettings/ProfileSettings';
-import useAuthStore from '../../store/authStore';
-import axiosClient from '../../api/axiosClient';
-import Loader from '../common/Loader';
+import { useState, useMemo } from "react";
+import ProfileHeader from "./ProfileHeader/ProfileHeader";
+import ProfileStats from "./ProfileStats/ProfileStats";
+import ProfileActivity from "./ProfileActivity/RecentActivity";
+import AchievementsList from "./ProfileAchievements/AchievementsList";
+import ProfileSettings from "./ProfileSettings/ProfileSettings";
 
-export default function ProfileView({ username: urlUsername }) {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [profileData, setProfileData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  
-  const { user: currentUser } = useAuthStore();
-  
-  // Logic: Are we looking at our own profile?
-  const isOwnProfile = useMemo(() => {
-    return !urlUsername || urlUsername === currentUser?.username;
-  }, [urlUsername, currentUser]);
+export default function ProfileView({ data, isOwnProfile }) {
+  const [activeTab, setActiveTab] = useState("overview");
 
-  useEffect(() => {
-    const fetchFullData = async () => {
-      setLoading(true);
-      try {
-        // If viewing own profile via /profile, target currentUser.username
-        const target = urlUsername || currentUser?.username;
-        if (!target) return;
-
-        const res = await axiosClient.get(`/users/${target}`);
-        setProfileData(res.data.user);
-      } catch (err) {
-        console.error("Failed to load profile", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFullData();
-  }, [urlUsername, currentUser?.username]);
-
-  // Transform recent tests for the chart
   const wpmHistory = useMemo(() => {
-    if (!profileData?.recentTests) return [];
-    return [...profileData.recentTests]
+    if (!data?.recentTests) return [];
+    return [...data.recentTests]
       .reverse()
-      .map((t, i) => ({ wpm: t.wpm, accuracy: t.accuracy, label: i + 1 }));
-  }, [profileData]);
-
-  if (loading) return <Loader />;
-  if (!profileData) return <div className="text-center py-20 text-sub">User not found</div>;
+      .map((t, i) => ({
+        wpm: t.wpm,
+        accuracy: t.accuracy,
+        label: i + 1,
+      }));
+  }, [data]);
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'activity', label: 'Activity', icon: '🕒' },
-    { id: 'achievements', label: 'Achievements', icon: '🏆' },
-    ...(isOwnProfile ? [{ id: 'settings', label: 'Settings', icon: '⚙️' }] : [])
+    { id: "overview", label: "Overview" },
+    { id: "activity", label: "Activity" },
+    { id: "achievements", label: "Achievements" },
+    ...(isOwnProfile ? [{ id: "settings", label: "Settings" }] : []),
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500">
-      {/* TABS */}
-      <div className="flex gap-2 mb-8 bg-dark/5 p-1 rounded-2xl w-fit">
+    <div className="space-y-10 animate-in fade-in duration-500">
+
+      {/* GLASS TAB BAR */}
+      <div className="flex gap-2 p-2 rounded-2xl bg-[var(--bg-color)]/40 backdrop-blur-xl border border-[var(--sub-color)]/10 w-fit">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              activeTab === tab.id ? 'bg-main text-page shadow-sm' : 'text-sub hover:text-dark'
+            className={`px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+              activeTab === tab.id
+                ? "bg-[var(--main-color)] text-[var(--bg-color)] shadow-md"
+                : "text-[var(--sub-color)] hover:text-[var(--text-color)]"
             }`}
           >
-            <span>{tab.label.toLowerCase()}</span>
+            {tab.label}
           </button>
         ))}
       </div>
 
-      <div className="grid gap-8">
-        <ProfileHeader user={profileData} isOwnProfile={isOwnProfile} />
+      <ProfileHeader user={data} isOwnProfile={isOwnProfile} />
 
-        {activeTab === 'overview' && (
-          <div className="space-y-8 animate-in fade-in duration-500">
-            <ProfileStats stats={profileData.stats} wpmHistory={wpmHistory} />
-            <ProfileActivity activities={profileData.recentTests} />
-          </div>
-        )}
+      {activeTab === "overview" && (
+        <div className="space-y-10">
+          <ProfileStats user={data} wpmHistory={wpmHistory} />
+          <ProfileActivity activities={data.recentTests} />
+        </div>
+      )}
 
-        {activeTab === 'activity' && (
-          <ProfileActivity activities={profileData.recentTests} />
-        )}
+      {activeTab === "activity" && (
+        <ProfileActivity activities={data.recentTests} />
+      )}
 
-        {activeTab === 'achievements' && (
-          <AchievementsList userAchievements={profileData.achievements} />
-        )}
+      {activeTab === "achievements" && (
+        <AchievementsList userAchievements={data.achievements} />
+      )}
 
-        {activeTab === 'settings' && isOwnProfile && (
-          <ProfileSettings user={profileData} />
-        )}
-      </div>
+      {activeTab === "settings" && isOwnProfile && (
+        <ProfileSettings user={data} />
+      )}
     </div>
   );
 }

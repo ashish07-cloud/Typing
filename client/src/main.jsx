@@ -18,8 +18,7 @@ if (saved) {
 }
 
 
-// In a real product, you'd wrap this in a Provider if using Context, 
-// but since we use Zustand, we keep it lean.
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
