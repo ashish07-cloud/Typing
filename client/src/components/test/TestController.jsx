@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react"; // Added useMemo
 import useTypingEngine from "../../hooks/useTypingEngine";
 import useTimer from "../../hooks/useTimer";
 import useTelemetry from "../../hooks/useTelemetry";
@@ -19,7 +19,7 @@ export default function TestController() {
   const [finalStats, setFinalStats] = useState(null);
 
   const {
-    index,
+    index, // This is the global character index
     status,
     results,
     handleChar,
@@ -54,6 +54,22 @@ export default function TestController() {
     },
   });
 
+  // --- LOGIC TO CALCULATE CURRENT WORD INDEX ---
+  const currentWordNumber = useMemo(() => {
+    if (!words || words.length === 0) return 0;
+    
+    let charCounter = 0;
+    for (let i = 0; i < words.length; i++) {
+      // Each word length + 1 for the space
+      charCounter += words[i].length + 1;
+      if (index < charCounter) {
+        return i + 1; // Return 1-based index
+      }
+    }
+    return words.length;
+  }, [index, words]);
+  // --------------------------------------------
+
   const { timeLeft, start, resetTimer } = useTimer(
     mode === "time" ? activeTime : null,
     finishTest
@@ -61,17 +77,40 @@ export default function TestController() {
 
   const { wpmTimeline } = useTelemetry({ log, status });
 
+   // --- REFINED LOGIC: COUNT COMPLETED WORDS ---
+  const completedWordsCount = useMemo(() => {
+    if (!words || words.length === 0) return 0;
+    
+    let charCounter = 0;
+    let completed = 0;
+
+    for (let i = 0; i < words.length; i++) {
+      // The index where the word actually ends (before the space)
+      const wordEndIndex = charCounter + words[i].length;
+
+      // If our current typing index is greater than the word's end index,
+      // it means we have typed the word and moved to (or past) the space.
+      if (index > wordEndIndex) {
+        completed++;
+      }
+
+      // Increment counter for next word (word length + 1 for the space)
+      charCounter += words[i].length + 1;
+    }
+
+    return completed;
+  }, [index, words]);
+
   const resetAll = useCallback(() => {
     setFinalStats(null);
     resetEngine();
     resetTimer();
   }, [resetEngine, resetTimer]);
 
-  // GLOBAL TAB KEY RESTART
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Tab") {
-        e.preventDefault(); // Prevent focus switching
+        e.preventDefault();
         resetAll();
       }
     };
@@ -93,7 +132,6 @@ export default function TestController() {
 
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col items-center px-4 select-none">
-      {/* Test Controls (Hides during test for focus) */}
       <div className={`transition-opacity duration-300 ${status === 'running' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <TestControls
           mode={mode}
@@ -109,10 +147,12 @@ export default function TestController() {
       <div className="w-full flex items-center justify-center min-h-[400px]">
         {!finalStats ? (
           <div className="w-full relative py-20">
-            {/* Timer / Counter Display */}
+
             <div className="absolute top-0 left-4 font-mono text-3xl text-[var(--main-color)] transition-opacity">
               {status === "running" && (
-                mode === "time" ? timeLeft : `${index}/${words.length}`
+                mode === "time" 
+                  ? timeLeft 
+                  : `${completedWordsCount}/${words.length}` // CHANGED THIS LINE
               )}
             </div>
 

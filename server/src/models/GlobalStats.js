@@ -4,7 +4,7 @@ const globalStatsSchema = new mongoose.Schema(
   {
     singleton: {
       type: String,
-      default: "global",
+      default: true,
       unique: true,
       index: true,
     },
