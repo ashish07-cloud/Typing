@@ -43,6 +43,8 @@ const startServer = async () => {
       }),
     );
 
+  app.options("*", cors());
+
     app.use(express.json());
 
     // 3. MOUNT ROUTES
