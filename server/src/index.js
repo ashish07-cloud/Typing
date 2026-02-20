@@ -21,22 +21,30 @@ const startServer = async () => {
     await connectDB();
     console.log("✅ Database connected successfully");
 
-    const allowedOrigins = [
-      process.env.CLIENT_URL,
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-    ];
+   const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  "http://127.0.0.1:5173"
+];
 
-    app.use(
-      cors({
-        origin: true,
-        credentials: true,
-      }),
-    );
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
 
-    app.options("*", cors());
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
 
-    app.use(express.json());
+    console.log("Blocked by CORS:", origin);
+    return callback(null, false);
+  },
+  credentials: true
+}));
+
+// Express 5 compatible
+app.options(/.*/, cors());
+
+app.use(express.json());
 
     // 3. MOUNT ROUTES
     app.use("/api/auth", authRoutes);
