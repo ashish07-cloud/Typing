@@ -29,21 +29,12 @@ const startServer = async () => {
 
     app.use(
       cors({
-        origin: (origin, callback) => {
-          if (!origin) return callback(null, true);
-
-          if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-          }
-
-          console.log("Blocked by CORS:", origin);
-          return callback(null, false);
-        },
+        origin: true,
         credentials: true,
       }),
     );
 
-  app.options("*", cors());
+    app.options("*", cors());
 
     app.use(express.json());
 
