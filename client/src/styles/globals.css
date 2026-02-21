@@ -57,3 +57,13 @@
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
 }
+
+/* Add this to your globals.css */
+/* @keyframes slow-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-bounce {
+  animation: slow-bounce 2s ease-in-out infinite;
+} */

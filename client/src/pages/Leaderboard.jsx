@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import LeaderboardTable from "../components/leaderboard/LeaderboardTable";
-import Loader from "../components/common/Loader";
-import axiosClient from "../api/axiosClient.js"
+import axiosClient from "../api/axiosClient.js";
 
 const MODES = ["time", "words"];
 const LIMITS = {
   time: [15, 30, 60],
-  words: [10, 25, 50]
+  words: [10, 25, 50],
 };
 
 export default function Leaderboard() {
@@ -33,10 +32,15 @@ export default function Leaderboard() {
   }, [fetchRankings]);
 
   return (
-    <div className="max-w-6xl mx-auto py-16 px-6 animate-in fade-in duration-700">
+    <div className="max-w-6xl mx-auto py-8 px-6 animate-in fade-in duration-700">
+      {/* Decorative background blur */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-main/5 rounded-full blur-3xl" />
+      </div>
+
       <header className="mb-16">
         <div className="flex flex-col items-center text-center mb-10">
-          <h1 className="text-5xl font-bold text-dark mb-3 tracking-tight">
+          <h1 className="text-5xl font-bold mb-3 tracking-tight bg-gradient-to-r from-main to-main/60 bg-clip-text text-transparent">
             Leaderboard
           </h1>
           <p className="text-sub font-mono text-sm uppercase tracking-[0.3em]">
@@ -44,17 +48,20 @@ export default function Leaderboard() {
           </p>
         </div>
 
-        {/* Filter Controls - Elegant Design */}
+        {/* Filter Controls - refined glass design */}
         <div className="flex flex-col md:flex-row justify-center items-center gap-6 mb-12">
           {/* Mode Selection */}
-          <div className="flex bg-dark/5 backdrop-blur-sm p-1 rounded-2xl border border-sub/10">
+          <div className="flex bg-page/50 backdrop-blur-sm p-1 rounded-2xl border border-sub/10 shadow-lg">
             {MODES.map((m) => (
               <button
                 key={m}
-                onClick={() => { setMode(m); setLimit(LIMITS[m][1]); }}
+                onClick={() => {
+                  setMode(m);
+                  setLimit(LIMITS[m][1]);
+                }}
                 className={`px-8 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
-                  mode === m 
-                    ? "bg-main text-page shadow-lg shadow-main/20" 
+                  mode === m
+                    ? "bg-main text-page shadow-lg shadow-main/30 scale-105"
                     : "text-sub hover:text-dark hover:bg-dark/5"
                 }`}
               >
@@ -68,18 +75,19 @@ export default function Leaderboard() {
             <span className="text-sub text-sm font-mono uppercase tracking-widest">
               Duration:
             </span>
-            <div className="flex bg-page p-1 rounded-xl border border-sub/10">
+            <div className="flex bg-page/50 backdrop-blur-sm p-1 rounded-xl border border-sub/10 shadow-md">
               {LIMITS[mode].map((l) => (
                 <button
                   key={l}
                   onClick={() => setLimit(l)}
                   className={`px-5 py-2 rounded-lg text-sm transition-all ${
-                    limit === l 
-                      ? "bg-main text-page font-bold" 
+                    limit === l
+                      ? "bg-main text-page font-bold shadow-inner"
                       : "text-sub hover:text-dark hover:bg-dark/5"
                   }`}
                 >
-                  {l}{mode === "time" ? "s" : ""}
+                  {l}
+                  {mode === "time" ? "s" : ""}
                 </button>
               ))}
             </div>
@@ -88,14 +96,7 @@ export default function Leaderboard() {
       </header>
 
       {loading ? (
-        <div className="flex justify-center py-32">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-sub/20 border-t-main rounded-full animate-spin"></div>
-            <span className="absolute inset-0 flex items-center justify-center text-main text-sm font-mono">
-              Loading
-            </span>
-          </div>
-        </div>
+        <LeaderboardTable.Skeleton />
       ) : (
         <LeaderboardTable data={data} />
       )}

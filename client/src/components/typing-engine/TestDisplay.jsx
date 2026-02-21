@@ -74,6 +74,8 @@ export default function TestDisplay({ words, index, results, status, handleChar,
         "--caret-y": "0px",
       }}
     >
+
+    
       <HiddenInput
         inputRef={inputRef}
         onChar={handleChar}

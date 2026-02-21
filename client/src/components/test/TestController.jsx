@@ -57,7 +57,7 @@ export default function TestController() {
   // --- LOGIC TO CALCULATE CURRENT WORD INDEX ---
   const currentWordNumber = useMemo(() => {
     if (!words || words.length === 0) return 0;
-    
+
     let charCounter = 0;
     for (let i = 0; i < words.length; i++) {
       // Each word length + 1 for the space
@@ -72,15 +72,15 @@ export default function TestController() {
 
   const { timeLeft, start, resetTimer } = useTimer(
     mode === "time" ? activeTime : null,
-    finishTest
+    finishTest,
   );
 
   const { wpmTimeline } = useTelemetry({ log, status });
 
-   // --- REFINED LOGIC: COUNT COMPLETED WORDS ---
+  // --- REFINED LOGIC: COUNT COMPLETED WORDS ---
   const completedWordsCount = useMemo(() => {
     if (!words || words.length === 0) return 0;
-    
+
     let charCounter = 0;
     let completed = 0;
 
@@ -131,48 +131,69 @@ export default function TestController() {
   }, [mode, activeTime, wordLimit, resetAll]);
 
   return (
-    <div className="w-full max-w-6xl mx-auto flex flex-col items-center px-4 select-none">
-      <div className={`transition-opacity duration-300 ${status === 'running' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-        <TestControls
-          mode={mode}
-          setMode={setMode}
-          activeTime={activeTime}
-          setActiveTime={setActiveTime}
-          wordLimit={wordLimit}
-          setWordLimit={setWordLimit}
-          disabled={status === "running"}
-        />
-      </div>
-
-      <div className="w-full flex items-center justify-center min-h-[400px]">
-        {!finalStats ? (
-          <div className="w-full relative py-20">
-
-            <div className="absolute top-0 left-4 font-mono text-3xl text-[var(--main-color)] transition-opacity">
-              {status === "running" && (
-                mode === "time" 
-                  ? timeLeft 
-                  : `${completedWordsCount}/${words.length}` // CHANGED THIS LINE
-              )}
-            </div>
-
-            <TestDisplay
-              words={words}
-              index={index}
-              results={results}
-              status={status}
-              handleChar={handleChar}
-              handleBackspace={handleBackspace}
+    <div className="w-full max-w-6xl mx-auto px-4 select-none">
+      {!finalStats ? (
+        <>
+          {/* Test Controls (ONLY in test mode) */}
+          <div
+            className={`transition-opacity duration-300 ${
+              status === "running"
+                ? "opacity-0 pointer-events-none"
+                : "opacity-100"
+            }`}
+          >
+            <TestControls
+              mode={mode}
+              setMode={setMode}
+              activeTime={activeTime}
+              setActiveTime={setActiveTime}
+              wordLimit={wordLimit}
+              setWordLimit={setWordLimit}
+              disabled={status === "running"}
             />
           </div>
-        ) : (
-          <ResultsSection
-            stats={finalStats}
-            timeline={wpmTimeline}
-            onRestart={resetAll}
-          />
-        )}
-      </div>
+
+          {/* Typing Area */}
+          <div className="w-full flex justify-center">
+            <div
+              className={`w-full relative py-4 md:py-6 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                status === "running"
+                  ? "-translate-y-6 md:-translate-y-8"
+                  : "translate-y-0"
+              }`}
+            >
+              <div className="absolute top-0 left-4 font-mono text-3xl text-[var(--main-color)] transition-opacity">
+                {status === "running" &&
+                  (mode === "time"
+                    ? timeLeft
+                    : `${completedWordsCount}/${words.length}`)}
+              </div>
+
+              {status === "idle" && (
+                <p className="text-center text-sub text-sm md:text-base mb-6 animate-pulse">
+                  Click on the text area to start the test
+                </p>
+              )}
+
+              <TestDisplay
+                words={words}
+                index={index}
+                results={results}
+                status={status}
+                handleChar={handleChar}
+                handleBackspace={handleBackspace}
+              />
+            </div>
+          </div>
+        </>
+      ) : (
+        /* Results Mode — controls completely removed */
+        <ResultsSection
+          stats={finalStats}
+          timeline={wpmTimeline}
+          onRestart={resetAll}
+        />
+      )}
     </div>
   );
 }
