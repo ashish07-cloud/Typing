@@ -14,6 +14,10 @@ dotenv.config();
 
 const app = express();
 
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "API running" });
+});
+
 app.set("trust proxy", 1);
 
 const startServer = async () => {
