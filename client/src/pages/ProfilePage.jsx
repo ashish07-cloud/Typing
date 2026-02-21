@@ -36,7 +36,7 @@ export default function ProfilePage() {
   if (!username && !currentUser) return <Navigate to="/login" replace />;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
       {profileData ? (
         <ProfileView
           data={profileData}

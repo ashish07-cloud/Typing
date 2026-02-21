@@ -3,25 +3,26 @@ import { memo } from "react";
 const Caret = memo(({ status }) => {
   if (status === "finished") return null;
 
+  const isIdle = status === "idle";
+
   return (
     <div
       className={`
         absolute
         z-30
-     
-        w-[0.1em]
-        rounded-[var(--roundness, 0.1em)]
         pointer-events-none
         will-change-transform
+        rounded-sm
 
-        transition-transform duration-[100ms] cubic-bezier(0.17, 0.67, 0.83, 0.67)
-        ${status === "idle" ? "animate-caret-smooth" : "opacity-100"}
+        transition-transform duration-180 ease-[cubic-bezier(0.4,0,0.2,1)]
+        ${isIdle ? "animate-caret-smooth" : ""}
       `}
       style={{
+        width: "2px",
+        height: "1.2em",
         backgroundColor: "var(--main-color)",
-        height: "1.2em", // Matching MonkeyType CSS
         transform: "translate3d(var(--caret-x), var(--caret-y), 0)",
-        top: "-0.1em", // Slight offset to center vertically with text
+        top: "-0.1em",
         left: 0,
       }}
     />

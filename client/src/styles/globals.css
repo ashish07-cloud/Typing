@@ -67,3 +67,25 @@
 .animate-bounce {
   animation: slow-bounce 2s ease-in-out infinite;
 } */
+
+
+@keyframes caret-breathe {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-caret-breathe {
+  animation: caret-breathe 1.2s ease-in-out infinite;
+}
+
+.caret-optimised {
+  transform: translate3d(var(--caret-x), var(--caret-y), 0);
+  will-change: transform;
+}

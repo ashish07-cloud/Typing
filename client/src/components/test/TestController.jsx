@@ -131,15 +131,19 @@ export default function TestController() {
   }, [mode, activeTime, wordLimit, resetAll]);
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 select-none">
+    <div className="relative w-full max-w-6xl mx-auto px-4 select-none">
+      {/* Focus Overlay */}
+      {status === "running" && (
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-[1px] z-40 pointer-events-none transition-opacity duration-500" />
+      )}
       {!finalStats ? (
         <>
           {/* Test Controls (ONLY in test mode) */}
           <div
-            className={`transition-opacity duration-300 ${
+            className={`transition-all duration-300 ${
               status === "running"
-                ? "opacity-0 pointer-events-none"
-                : "opacity-100"
+                ? "opacity-0 blur-sm pointer-events-none"
+                : "opacity-100 blur-0"
             }`}
           >
             <TestControls
@@ -154,12 +158,12 @@ export default function TestController() {
           </div>
 
           {/* Typing Area */}
-          <div className="w-full flex justify-center">
+          <div className="relative z-50 w-full flex justify-center">
             <div
-              className={`w-full relative py-4 md:py-6 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              className={`relative z-50 w-full py-4 md:py-6 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                 status === "running"
-                  ? "-translate-y-6 md:-translate-y-8"
-                  : "translate-y-0"
+                  ? "-translate-y-10 md:-translate-y-10 scale-[1.01]"
+                  : "translate-y-0 scale-100"
               }`}
             >
               <div className="absolute top-0 left-4 font-mono text-3xl text-[var(--main-color)] transition-opacity">

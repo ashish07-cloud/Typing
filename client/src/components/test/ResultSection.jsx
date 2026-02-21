@@ -63,7 +63,7 @@ export default function ResultsSection({ stats, timeline, onRestart }) {
       </div>
 
       {/* MIDDLE SECTION: DATA STRIP */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 border-y border-[var(--sub-color)]/10 py-10">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 border-y border-[var(--sub-color)]/10 py-6">
         <DetailBox label="test type" value={`${mode} ${limit}`} />
         <DetailBox label="raw wpm" value={Math.round(rawWpm)} />
         <DetailBox label="characters" value={charStats} />
@@ -78,7 +78,7 @@ export default function ResultsSection({ stats, timeline, onRestart }) {
       {/* BOTTOM SECTION: ACTION CONTROLS */}
       <div className="flex flex-col items-center gap-6">
         {/* Tab hint - subtle and modern */}
-        <div className="text-sub text-xs font-mono uppercase tracking-widest flex items-center gap-2">
+        <div className="text-sub  text-xs font-mono uppercase tracking-widest flex items-center gap-2">
         <span>Press</span>
           <kbd className="px-2 py-1 bg-sub/10 rounded border border-sub/20 text-sub text-xs">
             Tab
