@@ -32,3 +32,16 @@
 //   },
 //   plugins: [],
 // };
+
+module.exports = {
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+  safelist: [
+    "backdrop-blur-xl",
+    "backdrop-blur-md",
+    "bg-[var(--bg-color)]/60",
+  ],
+};

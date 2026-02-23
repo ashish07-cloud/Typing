@@ -63,17 +63,13 @@ export default function Header() {
   };
 
   return (
-   <header
-  className={`w-full border-b border-[var(--sub-color)]/10 
+    <header
+      className={`w-full border-b border-[var(--sub-color)]/10 
 px-4 sm:px-6 lg:px-8 py-3 md:py-4 
 sticky top-0 z-30
 bg-[var(--bg-color)] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
-${
-  isTyping
-    ? "blur-sm opacity-60"
-    : "blur-0 opacity-100"
-}`}
->
+${isTyping ? "blur-xl opacity-60" : "blur-0 opacity-100"}`}
+    >
       <div className="mx-auto max-w-6xl flex items-center justify-between">
         {/* LEFT SIDE: Logo + Leaderboard */}
         <div className="flex items-center gap-6">
