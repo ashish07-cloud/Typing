@@ -9,8 +9,11 @@ import Register from "./pages/Register";
 import ResultPage from "./pages/ResultPage";
 import ProfilePage from "./pages/ProfilePage";
 import Leaderboard from "./pages/Leaderboard";
+
 import Loader from "./components/common/Loader";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+
+import NotFound from "./pages/NotFound.jsx";
 
 export default function App() {
   const { initialize, isInitialized } = useAuthStore(); // Changed from fetchMe to initialize
@@ -33,23 +36,25 @@ export default function App() {
       <Header />
       
       <main className="container mx-auto px-4 py-8">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/result" element={<ResultPage />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          
-          {/* PROTECTED ROUTES */}
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            } 
-          />
-        </Routes>
+       <Routes>
+  <Route path="/" element={<HomePage />} />
+  <Route path="/login" element={<Login />} />
+  <Route path="/register" element={<Register />} />
+  <Route path="/result" element={<ResultPage />} />
+  <Route path="/leaderboard" element={<Leaderboard />} />
+
+  <Route
+    path="/profile"
+    element={
+      <ProtectedRoute>
+        <ProfilePage />
+      </ProtectedRoute>
+    }
+  />
+
+ 
+  <Route path="*" element={<NotFound />} />
+</Routes>
       </main>
     </div>
   );

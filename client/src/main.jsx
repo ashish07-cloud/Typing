@@ -3,27 +3,33 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./styles/globals.css";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
-const saved = localStorage.getItem("auth-storage");
+import { THEMES } from "./styles/themes";
 
-if (saved) {
-  try {
-    const parsed = JSON.parse(saved);
-    const prefs = parsed?.state?.user?.preferences;
+const savedTheme = localStorage.getItem("theme");
 
-    if (prefs?.theme) {
-      document.documentElement.setAttribute("data-theme", prefs.theme);
-    }
-  } catch (e) {}
+if (savedTheme && THEMES[savedTheme]) {
+  const theme = THEMES[savedTheme];
+  const root = document.documentElement;
+
+  root.style.setProperty("--bg-color", theme.bg);
+  root.style.setProperty("--main-color", theme.main);
+  root.style.setProperty("--sub-color", theme.sub);
+  root.style.setProperty("--text-color", theme.text);
+  root.style.setProperty("--error-color", theme.error);
+
+  root.dataset.theme = savedTheme;
 }
 
 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
-        {/* You should build a simple ErrorBoundary component here later */}
+    <ErrorBoundary>
+      <BrowserRouter>
         <App />
-    </BrowserRouter>
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );
