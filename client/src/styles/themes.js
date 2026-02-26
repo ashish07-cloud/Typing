@@ -110,6 +110,4 @@ export const THEMES = {
     text: "#404040",
     error: "#c65a5a",
   },
-
- 
 };
