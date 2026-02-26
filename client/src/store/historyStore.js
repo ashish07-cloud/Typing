@@ -14,11 +14,6 @@ const useHistoryStore = create(
         return get().historyByUser[key] || [];
       },
 
-      /**
-       * PRODUCTION-GRADE ADD RESULT
-       * 1. Optimistically updates local state (UI feels instant)
-       * 2. Dispatches to Backend API (Persistence & Leaderboard)
-       */
       addResult: async (user, result) => {
         const key = getUserKey(user);
 
@@ -30,22 +25,15 @@ const useHistoryStore = create(
           },
         }));
 
-        //         console.log("📦 Sending to backend:", {
-        //   rawLog: result.rawLog,
-        //   duration: result.duration,
-        //   mode: result.mode,
-        //   limit: result.limit,
-        // });
-
         // 2. BACKEND SYNC (Only for logged-in users)
         if (user) {
           try {
             // We map the local result object to the Backend's expected schema
             await axiosClient.post("/tests", {
-              rawLog: result.rawLog, // Sending the full log for verification
-              duration: result.duration,
+              rawLog: result.rawLog,
               mode: result.mode,
               limit: result.limit,
+              deviceType: "desktop", // optional but clean
             });
             console.log("✅ Result synced with cloud database.");
           } catch (err) {

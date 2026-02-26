@@ -1,90 +1,116 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
-import { Palette, Trophy } from "lucide-react"; // More professional icons
+import { Palette } from "lucide-react";
+
 import AuthActions from "./AuthActions";
 import { THEMES } from "../../styles/themes";
 import useAuthStore from "../../store/authStore";
 import { useTestStore } from "../../store/testStore";
 
-function applyTheme(themeName) {
-  const theme = THEMES[themeName];
-  if (!theme) return;
-  const root = document.documentElement;
-  root.style.setProperty("--bg-color", theme.bg);
-  root.style.setProperty("--main-color", theme.main);
-  root.style.setProperty("--sub-color", theme.sub);
-  root.style.setProperty("--text-color", theme.text);
-  root.style.setProperty("--error-color", theme.error);
-  root.dataset.theme = themeName;
-}
+import {
+  applyTheme,
+  setStoredTheme,
+  getInitialTheme,
+} from "../../styles/themeManager";
 
 export default function Header() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { user, updatePreferences } = useAuthStore();
-
   const status = useTestStore((s) => s.status);
   const isTyping = status === "running";
 
-  const initialTheme =
-    user?.preferences?.theme || localStorage.getItem("theme") || "olive";
   const [open, setOpen] = useState(false);
-  const [lockedTheme, setLockedTheme] = useState(initialTheme);
+  const [lockedTheme, setLockedTheme] = useState(
+    getInitialTheme(user?.preferences?.theme)
+  );
+
   const panelRef = useRef(null);
 
-  // LOGO CLICK HANDLER (MonkeyType Style)
-  const handleLogoClick = (e) => {
-    if (location.pathname === "/") {
-      e.preventDefault();
-      // If we are on home page, a full reload or state reset is better
-      window.location.href = "/";
-    }
-  };
-
-  // Scroll lock when theme menu is open
+  // Apply theme once on mount
   useEffect(() => {
+    applyTheme(lockedTheme);
+  }, []); // only once
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+
     if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
+      document.addEventListener("mousedown", handleClickOutside);
     }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [open]);
+
+  // Close on ESC
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+
+    if (open) {
+      window.addEventListener("keydown", handleEsc);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleEsc);
+    };
   }, [open]);
 
   const handleThemeClick = async (themeName) => {
     setLockedTheme(themeName);
-    localStorage.setItem("theme", themeName);
+    applyTheme(themeName);
+    setStoredTheme(themeName);
+
     try {
-      if (user)
-        await updatePreferences({ ...user.preferences, theme: themeName });
+      if (user) {
+        await updatePreferences({
+          ...user.preferences,
+          theme: themeName,
+        });
+      }
     } catch (err) {
       console.error(err);
     }
+
     setOpen(false);
+  };
+
+  const handleLogoClick = (e) => {
+    if (location.pathname === "/") {
+      e.preventDefault();
+      window.location.href = "/";
+    }
   };
 
   return (
     <header
-      className={`w-full border-b border-[var(--sub-color)]/10 
-px-4 sm:px-6 lg:px-8 py-3 md:py-4 
-sticky top-0 z-30
-bg-[var(--bg-color)] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
-${isTyping ? "blur-xl opacity-60" : "blur-0 opacity-100"}`}
+      className={`w-full border-b border-[var(--sub-color)]/10
+px-4 sm:px-6 lg:px-8 py-3 md:py-4
+sticky top-0 z-[999]
+bg-[var(--bg-color)] transition-all duration-300
+${isTyping ? "opacity-60" : "opacity-100"}`}
     >
       <div className="mx-auto max-w-6xl flex items-center justify-between">
-        {/* LEFT SIDE: Logo + Leaderboard */}
+        {/* LEFT SIDE */}
         <div className="flex items-center gap-6">
           <Link
             to="/"
             onClick={handleLogoClick}
             className="flex items-center gap-2 md:gap-3 group"
           >
-            <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-[var(--main-color)] rotate-45 group-hover:rotate-90 transition-transform duration-500 ease-out" />
+            <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-[var(--main-color)] rotate-45 group-hover:rotate-90 transition-transform duration-500" />
             <h1 className="text-lg md:text-2xl font-black tracking-tighter">
               typing<span className="text-[var(--main-color)]">guru</span>
             </h1>
           </Link>
 
-          {/* Leaderboard Button */}
           <Link
             to="/leaderboard"
             className={`text-xs uppercase tracking-[0.2em] font-bold transition-colors ${
@@ -97,37 +123,38 @@ ${isTyping ? "blur-xl opacity-60" : "blur-0 opacity-100"}`}
           </Link>
         </div>
 
-        {/* RIGHT SIDE (Hidden During Typing) */}
+        {/* RIGHT SIDE */}
         {!isTyping && (
           <div className="flex items-center gap-2 md:gap-4 relative">
-            {/* THEME BUTTON */}
+            {/* Theme Toggle Button */}
             <button
-              onClick={() => setOpen(!open)}
-              className={`p-2 rounded-lg transition-all border flex items-center justify-center ${
+              onClick={() => setOpen((prev) => !prev)}
+              className={`p-2 rounded-lg border transition-all flex items-center justify-center ${
                 open
-                  ? "border-[var(--main-color)] text-[var(--main-color)] bg-[var(--main-color)]/5"
-                  : "border-[var(--sub-color)]/20 text-[var(--sub-color)] hover:text-[var(--main-color)] hover:border-[var(--main-color)]"
+                  ? "border-[var(--main-color)] text-[var(--main-color)] bg-[var(--main-color)]/10"
+                  : "border-[var(--sub-color)]/20 text-[var(--sub-color)] hover:border-[var(--main-color)] hover:text-[var(--main-color)]"
               }`}
             >
               <Palette size={20} />
             </button>
 
+            {/* Theme Dropdown */}
             {open && (
               <div
                 ref={panelRef}
-                className="absolute right-0 top-14 w-56 md:w-64 max-h-[70vh] overflow-y-auto p-2 rounded-2xl backdrop-blur-xl bg-[var(--bg-color)]/95 border border-[var(--sub-color)]/20 shadow-2xl"
+                className="absolute right-0 top-14 w-56 md:w-64 max-h-[70vh] overflow-y-auto p-2 rounded-2xl
+                bg-[var(--bg-color)] border border-[var(--sub-color)]/20 shadow-2xl"
               >
                 <div className="px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-[var(--sub-color)] font-bold border-b border-[var(--sub-color)]/10 mb-2">
                   Select Theme
                 </div>
+
                 <div className="grid grid-cols-1 gap-1">
                   {Object.keys(THEMES).map((themeKey) => (
                     <button
                       key={themeKey}
                       onClick={() => handleThemeClick(themeKey)}
-                      onMouseEnter={() => applyTheme(themeKey)}
-                      onMouseLeave={() => applyTheme(lockedTheme)}
-                      className={`w-full text-left px-4 py-2 rounded-xl text-sm capitalize transition-all ${
+                      className={`w-full text-left px-4 py-2 rounded-xl text-sm capitalize transition-colors ${
                         lockedTheme === themeKey
                           ? "bg-[var(--main-color)] text-[var(--bg-color)] font-bold"
                           : "text-[var(--text-color)] hover:bg-[var(--sub-color)]/10"

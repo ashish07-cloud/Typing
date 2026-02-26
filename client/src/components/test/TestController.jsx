@@ -162,7 +162,7 @@ export default function TestController() {
             <div
               className={`relative z-50 w-full py-4 md:py-6 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                 status === "running"
-                  ? "-translate-y-10 md:-translate-y-10 scale-[1.01]"
+                  ? "-translate-y-10 md:-translate-y-16 scale-[1.01]"
                   : "translate-y-0 scale-100"
               }`}
             >

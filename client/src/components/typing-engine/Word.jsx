@@ -22,9 +22,9 @@ const Word = memo(
               : "text-error border-b-2 border-error/40";
           }
 
+          // 🔥 Current character — no underline anymore
           if (isCurrent) {
-            colorClass =
-              "text-main underline decoration-2 underline-offset-4";
+            colorClass = "text-main";
           }
 
           return (
