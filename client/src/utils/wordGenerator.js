@@ -58,7 +58,7 @@ export const generateWords = (limit = 25, language = "english") => {
   let mediumIndex = 0;
 
   for (let i = 0; i < limit; i++) {
-    const useMedium = Math.random() < 0.3; // 30% medium
+    const useMedium = Math.random() < 0.4; // 30% medium
 
     if (useMedium && medium.length > 0) {
       if (mediumIndex >= medium.length) {
